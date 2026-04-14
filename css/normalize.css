@@ -1,0 +1,18 @@
+/* Minimalist Reset for L'Oréal Project */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
