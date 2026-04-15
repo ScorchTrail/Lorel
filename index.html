@@ -1,35 +1,265 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>L’Oréal Beauty Consultant</title>
-    <link rel="stylesheet" href="css/normalize.css">
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-    <header class="loreal-header">
-        <div class="loreal-header__logo">L’Oréal</div>
-    </header>
-    <div class="chat-container">
-        <main class="loreal-chat">
-            <div class="loreal-chat__query-monitor" id="query-monitor">
-                <span class="loreal-chat__query-label">CURRENT CONSULTATION:</span>
-                <span class="loreal-chat__query-text" id="last-user-query">Waiting for your question...</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>L'Oréal Beauty Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              loreal: {
+                black: "#1a1a1a",
+                gold: "#C5A059",
+                lightgold: "#F4EFE6",
+                gray: "#f5f5f5",
+              },
+            },
+            fontFamily: {
+              serif: ["Playfair Display", "serif"],
+              sans: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #c5a059;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-50 p-4 font-sans text-loreal-black">
+    <main
+      class="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col"
+    >
+      <div
+        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl"
+      >
+        <header
+          class="border-b-4 border-loreal-gold bg-loreal-black p-6 text-center text-white"
+        >
+          <h1 class="font-serif text-3xl font-bold uppercase tracking-[0.2em]">
+            L'Oréal
+          </h1>
+          <p
+            class="mt-1 text-xs font-sans uppercase tracking-wider text-loreal-gold"
+          >
+            Paris - Virtual Beauty Advisor
+          </p>
+        </header>
+
+        <div
+          id="chat-window"
+          class="flex-1 overflow-y-auto space-y-6 bg-[#faf9f7] p-6"
+        >
+          <div class="flex items-start">
+            <div
+              class="mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-loreal-black font-serif text-xl font-bold text-loreal-gold"
+            >
+              L
             </div>
+            <div
+              class="max-w-[80%] rounded-2xl rounded-tl-none border border-loreal-gold bg-white p-4 text-sm leading-relaxed text-gray-800 shadow-sm"
+            >
+              Welcome to L'Oréal Paris. I am your personal AI beauty advisor.
+              How can I assist you today with your makeup, skincare, or haircare
+              routine?
+            </div>
+          </div>
+        </div>
 
-            <section class="loreal-chat__history" id="chat-window">
-            </section>
+        <div class="border-t border-gray-100 bg-white p-4">
+          <form id="chat-form" class="flex items-center gap-2">
+            <input
+              type="text"
+              id="user-input"
+              placeholder="Ask about skincare routines, makeup shades..."
+              class="flex-1 rounded-full border border-transparent bg-loreal-gray px-5 py-4 text-sm transition-all focus:border-loreal-gold focus:outline-none focus:ring-2 focus:ring-loreal-gold"
+              autocomplete="off"
+            />
+            <button
+              type="submit"
+              id="send-btn"
+              class="group flex items-center justify-center rounded-full bg-loreal-black p-4 text-white transition-colors hover:bg-black"
+              aria-label="Send message"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 text-loreal-gold transition-transform group-hover:scale-110"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
+              </svg>
+            </button>
+          </form>
+        </div>
+      </div>
 
-            <div class="loreal-chat__input-area">
-                <div class="loreal-chat__input-box">
-                    <input type="text" class="loreal-chat__input" id="user-input" placeholder="Ask about L'Oréal products...">
-                    <button class="loreal-chat__submit" id="send-btn">SEND</button>
+      <footer
+        class="mt-4 text-center text-xs uppercase tracking-[0.12em] text-gray-600"
+      >
+        © 2026 Vednt Patel - All Rights Reserved.
+      </footer>
+    </main>
+
+    <script>
+      const SYSTEM_PROMPT = `You are an elegant, professional, and helpful Virtual Beauty Advisor for L'Oréal Paris.
+Your goal is to help users discover L'Oréal products (makeup, skincare, haircare, fragrances) and provide personalized routines.
+CRITICAL RULE: You MUST ONLY answer questions related to beauty, L'Oréal products, cosmetics, skincare routines, and haircare.
+If a user asks about politics, coding, unrelated general knowledge, or anything outside of beauty/L'Oréal, you must politely decline, explain that you are a L'Oréal beauty advisor, and ask how you can help them with their beauty needs. Maintain a sophisticated, encouraging, and luxurious tone.`;
+
+      const conversationHistory = [];
+      const cloudflareWorkerURL =
+        "https://lorel-chat-proxy.p-vedant7878.workers.dev";
+
+      const chatWindow = document.getElementById("chat-window");
+      const chatForm = document.getElementById("chat-form");
+      const userInputBox = document.getElementById("user-input");
+      const sendBtn = document.getElementById("send-btn");
+
+      function escapeHtml(text) {
+        return text
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function scrollToBottom() {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      function appendUserMessage(text) {
+        const safeText = escapeHtml(text);
+        const msgHTML = `
+                <div class="flex items-start justify-end">
+                    <div class="max-w-[80%] rounded-2xl rounded-tr-none bg-loreal-black p-4 text-sm leading-relaxed text-white shadow-md">
+                        ${safeText}
+                    </div>
                 </div>
-            </div>
-        </main>
-    </div>
-    <footer class="site-footer">© 2026 Vednt Patel — All Rights Reserved.</footer>
-    <script src="js/script.js"></script>
-</body>
-</html></content>
+            `;
+        chatWindow.insertAdjacentHTML("beforeend", msgHTML);
+        scrollToBottom();
+      }
+
+      function appendBotMessage(text) {
+        const safeText = escapeHtml(text).replace(/\n/g, "<br>");
+        const msgHTML = `
+                <div class="flex items-start">
+                    <div class="mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-loreal-black font-serif text-xl font-bold text-loreal-gold shadow-sm">
+                        L
+                    </div>
+                    <div class="max-w-[80%] rounded-2xl rounded-tl-none border border-loreal-gold bg-white p-4 text-sm leading-relaxed text-gray-800 shadow-sm">
+                        ${safeText}
+                    </div>
+                </div>
+            `;
+        chatWindow.insertAdjacentHTML("beforeend", msgHTML);
+        scrollToBottom();
+      }
+
+      function showLoadingIndicator() {
+        const loadingId = `loading-${Date.now()}`;
+        const msgHTML = `
+                <div id="${loadingId}" class="flex items-start">
+                    <div class="mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-loreal-black font-serif text-xl font-bold text-loreal-gold">L</div>
+                    <div class="flex items-center space-x-2 rounded-2xl rounded-tl-none border border-gray-200 bg-white p-4 text-gray-400 shadow-sm">
+                        <div class="h-2 w-2 animate-bounce rounded-full bg-loreal-gold"></div>
+                        <div class="h-2 w-2 animate-bounce rounded-full bg-loreal-gold" style="animation-delay: 0.2s"></div>
+                        <div class="h-2 w-2 animate-bounce rounded-full bg-loreal-gold" style="animation-delay: 0.4s"></div>
+                    </div>
+                </div>
+            `;
+        chatWindow.insertAdjacentHTML("beforeend", msgHTML);
+        scrollToBottom();
+        return loadingId;
+      }
+
+      function removeLoadingIndicator(id) {
+        const indicator = document.getElementById(id);
+        if (indicator) {
+          indicator.remove();
+        }
+      }
+
+      async function fetchAIResponse(userText) {
+        conversationHistory.push({ role: "user", content: userText });
+
+        const messages = [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...conversationHistory,
+        ];
+
+        try {
+          const response = await fetch(cloudflareWorkerURL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Worker response was not ok (${response.status})`);
+          }
+
+          const data = await response.json();
+          const botReply = data?.choices?.[0]?.message?.content?.trim() || "";
+
+          if (!botReply) {
+            throw new Error("No assistant response in payload");
+          }
+
+          conversationHistory.push({ role: "assistant", content: botReply });
+          return botReply;
+        } catch (error) {
+          console.error("Error communicating with Cloudflare Worker:", error);
+          return "I apologize, our beauty servers are currently updating. Please try again in a moment.";
+        }
+      }
+
+      chatForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const text = userInputBox.value.trim();
+        if (!text) {
+          return;
+        }
+
+        userInputBox.value = "";
+        userInputBox.disabled = true;
+        sendBtn.disabled = true;
+
+        appendUserMessage(text);
+        const loadingId = showLoadingIndicator();
+        const responseText = await fetchAIResponse(text);
+        removeLoadingIndicator(loadingId);
+        appendBotMessage(responseText);
+
+        userInputBox.disabled = false;
+        sendBtn.disabled = false;
+        userInputBox.focus();
+      });
+    </script>
+  </body>
+</html>
