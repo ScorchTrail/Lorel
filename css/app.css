@@ -911,6 +911,15 @@ html[dir="rtl"] .hub--open {
   gap: var(--space-1);
 }
 
+body.app--busy .chat__form {
+  opacity: 0.72;
+}
+
+body.app--busy .chat__form .chat__input,
+body.app--busy .chat__form .chat__submit {
+  pointer-events: none;
+}
+
 .chat__input {
   grid-column: span 9;
   min-block-size: 48px;

@@ -11,6 +11,7 @@ const state = {
   routineGenerated: false,
   conversation: [],
   previousSelectedCount: 0,
+  requestInFlight: false,
 };
 
 const dom = {
@@ -184,11 +185,43 @@ function setRoutineControls(isGenerated) {
   const hasSelections = state.selectedIds.size > 0;
   const canChat = isGenerated || hasSelections;
 
-  dom.chatInput.disabled = !canChat;
-  dom.chatSubmitBtn.disabled = !canChat;
+  dom.chatInput.disabled = !canChat || state.requestInFlight;
+  dom.chatSubmitBtn.disabled = !canChat || state.requestInFlight;
   dom.chatInput.placeholder = isGenerated
     ? "Ask follow-up questions about order, usage, or alternatives"
     : "Ask your first question to auto-generate your routine";
+}
+
+function setBusyState(isBusy, context = "") {
+  state.requestInFlight = isBusy;
+
+  if (isBusy) {
+    document.body.classList.add("app--busy");
+    dom.chatForm.setAttribute("aria-busy", "true");
+    dom.generateBtn.disabled = true;
+    dom.generateBtn.setAttribute("aria-disabled", "true");
+    dom.chatSubmitBtn.setAttribute("aria-disabled", "true");
+    dom.chatInput.setAttribute("aria-disabled", "true");
+
+    if (context === "generate") {
+      dom.chatSubmitBtn.textContent = "Waiting...";
+    }
+    if (context === "followUp") {
+      dom.chatSubmitBtn.textContent = "Waiting...";
+      dom.generateBtn.textContent = "Please wait...";
+    }
+  } else {
+    document.body.classList.remove("app--busy");
+    dom.chatForm.removeAttribute("aria-busy");
+    dom.generateBtn.removeAttribute("aria-disabled");
+    dom.chatSubmitBtn.removeAttribute("aria-disabled");
+    dom.chatInput.removeAttribute("aria-disabled");
+    dom.generateBtn.textContent = "Generate Routine";
+    dom.chatSubmitBtn.textContent = "Send";
+    dom.generateBtn.disabled = getSelectedProducts().length === 0;
+  }
+
+  setRoutineControls(state.routineGenerated);
 }
 
 function getSelectedProducts() {
@@ -644,6 +677,10 @@ async function loadProductsFromWorker() {
 }
 
 async function handleGenerateRoutine() {
+  if (state.requestInFlight) {
+    return;
+  }
+
   const selectedProducts = getSelectedProducts();
   if (selectedProducts.length === 0) {
     return;
@@ -653,7 +690,7 @@ async function handleGenerateRoutine() {
   setHubOpenState(true);
   setActiveHubTab("advisor");
 
-  dom.generateBtn.disabled = true;
+  setBusyState(true, "generate");
   dom.generateBtn.textContent = "Generating...";
 
   appendChatMessage("user", "Generate my routine from the selected products.");
@@ -681,13 +718,16 @@ async function handleGenerateRoutine() {
       "Routine generation is temporarily unavailable. Please try again in a moment.",
     );
   } finally {
-    dom.generateBtn.textContent = "Generate Routine";
-    dom.generateBtn.disabled = getSelectedProducts().length === 0;
+    setBusyState(false);
   }
 }
 
 async function handleChatSubmit(event) {
   event.preventDefault();
+  if (state.requestInFlight) {
+    return;
+  }
+
   if (state.selectedIds.size === 0) {
     appendChatMessage(
       "system",
@@ -709,8 +749,7 @@ async function handleChatSubmit(event) {
   }
 
   dom.chatInput.value = "";
-  dom.chatSubmitBtn.disabled = true;
-  dom.chatSubmitBtn.textContent = "...";
+  setBusyState(true, "followUp");
 
   appendChatMessage("user", message);
   addConversationEntry("user", message);
@@ -731,8 +770,7 @@ async function handleChatSubmit(event) {
       "I could not fetch a follow-up answer right now.",
     );
   } finally {
-    dom.chatSubmitBtn.disabled = false;
-    dom.chatSubmitBtn.textContent = "Send";
+    setBusyState(false);
     dom.chatInput.focus();
   }
 }
