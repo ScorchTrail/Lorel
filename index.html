@@ -23,7 +23,13 @@
     <header class="app__header">
       <div class="app__header-inner">
         <div class="app__title-wrap">
-          <h1 class="app__title">L'Oréal Routine Builder</h1>
+          <h1 class="app__title">
+            <img
+              class="app__logo"
+              src="./assets/loreal-logo.png"
+              alt="L'Oréal Paris"
+            />
+          </h1>
           <p class="app__subtitle">
             Select products, generate a routine, and refine it with follow-up
             chat.
@@ -80,7 +86,11 @@
             </div>
           </section>
 
-          <p id="product-status" class="status-text" aria-live="polite"></p>
+          <p
+            id="product-status"
+            class="product-grid__status"
+            aria-live="polite"
+          ></p>
 
           <ul
             id="product-grid"
@@ -88,79 +98,150 @@
             aria-label="Product catalog"
           ></ul>
         </section>
-
-        <aside
-          class="layout-grid__aside sidebar-stack"
-          aria-label="Selected products and AI advisor"
-        >
-          <section
-            class="panel panel--padded selected-products"
-            aria-labelledby="selected-title"
-          >
-            <div class="selected-products__head">
-              <h2 id="selected-title" class="selected-products__title">
-                Selected Products
-              </h2>
-              <button id="clear-all-btn" class="btn btn--ghost" type="button">
-                Clear All
-              </button>
-            </div>
-            <p class="status-text">Count: <span id="selected-count">0</span></p>
-            <ul
-              id="selected-list"
-              class="selected-products__list"
-              aria-live="polite"
-            ></ul>
-            <div class="selected-products__actions">
-              <button
-                id="generate-routine-btn"
-                class="btn btn--primary"
-                type="button"
-                disabled
-              >
-                Generate Routine
-              </button>
-            </div>
-          </section>
-
-          <section
-            class="panel panel--padded chat"
-            aria-labelledby="chat-title"
-          >
-            <h2 id="chat-title" class="chat__title">Beauty Advisor Chat</h2>
-            <ul id="chat-history" class="chat__history" aria-live="polite">
-              <li class="chat__message chat__message--system">
-                Select products and click "Generate Routine" to start your
-                personalized conversation.
-              </li>
-            </ul>
-
-            <form id="chat-form" class="chat__form">
-              <label class="visually-hidden" for="chat-input"
-                >Ask a follow-up question</label
-              >
-              <input
-                id="chat-input"
-                class="input chat__input"
-                type="text"
-                placeholder="Ask follow-up questions about order, usage, or alternatives"
-                autocomplete="off"
-                required
-                disabled
-              />
-              <button
-                id="chat-submit-btn"
-                class="btn btn--secondary chat__submit"
-                type="submit"
-                disabled
-              >
-                Send
-              </button>
-            </form>
-          </section>
-        </aside>
       </div>
     </main>
+
+    <button
+      id="hub-launcher"
+      class="hub-launcher"
+      type="button"
+      aria-label="Open routine hub"
+      aria-controls="hub-panel"
+      aria-expanded="false"
+    >
+      <span class="hub-launcher__label">Routine Hub</span>
+      <span id="hub-badge" class="hub-launcher__badge">0</span>
+    </button>
+
+    <div id="hub-backdrop" class="hub-backdrop" hidden></div>
+
+    <aside
+      id="hub-panel"
+      class="hub"
+      aria-label="Selected products and beauty advisor"
+      aria-hidden="true"
+    >
+      <div class="hub__header">
+        <h2 class="hub__title">My Routine Hub</h2>
+        <button
+          id="hub-close-btn"
+          class="hub__close"
+          type="button"
+          aria-label="Close routine hub"
+        >
+          x
+        </button>
+      </div>
+
+      <div class="hub__tabs" role="tablist" aria-label="Routine hub tabs">
+        <span class="hub__tab-indicator" aria-hidden="true"></span>
+        <button
+          class="hub__tab hub__tab--active"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          data-hub-tab="selected"
+          id="hub-tab-trigger-selected"
+          aria-controls="hub-tab-selected"
+        >
+          Selected
+        </button>
+        <button
+          class="hub__tab"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          data-hub-tab="advisor"
+          id="hub-tab-trigger-advisor"
+          aria-controls="hub-tab-advisor"
+        >
+          Advisor
+        </button>
+      </div>
+
+      <div
+        id="hub-tab-selected"
+        class="hub__tab-panel hub__tab-panel--active"
+        role="tabpanel"
+        aria-labelledby="hub-tab-trigger-selected"
+      >
+        <section
+          class="panel panel--padded hub__panel selected-products"
+          aria-labelledby="selected-title"
+        >
+          <div class="selected-products__head">
+            <h3 id="selected-title" class="selected-products__title">
+              Selected Products
+            </h3>
+            <button id="clear-all-btn" class="btn btn--ghost" type="button">
+              Clear All
+            </button>
+          </div>
+          <p class="selected-products__count">
+            Count: <span id="selected-count">0</span>
+          </p>
+          <ul
+            id="selected-list"
+            class="selected-products__list"
+            aria-live="polite"
+          ></ul>
+          <div class="selected-products__actions">
+            <button
+              id="generate-routine-btn"
+              class="btn btn--primary"
+              type="button"
+              disabled
+            >
+              Generate Routine
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div
+        id="hub-tab-advisor"
+        class="hub__tab-panel"
+        role="tabpanel"
+        aria-labelledby="hub-tab-trigger-advisor"
+        hidden
+      >
+        <section
+          class="panel panel--padded hub__panel chat"
+          aria-labelledby="chat-title"
+        >
+          <h3 id="chat-title" class="chat__title">Beauty Advisor Chat</h3>
+          <ul id="chat-history" class="chat__history" aria-live="polite">
+            <li class="chat__message chat__message--system">
+              Select products and click "Generate Routine" to start your
+              personalized conversation.
+            </li>
+          </ul>
+
+          <form id="chat-form" class="chat__form">
+            <label class="visually-hidden" for="chat-input"
+              >Ask a follow-up question</label
+            >
+            <input
+              id="chat-input"
+              class="input chat__input"
+              type="text"
+              placeholder="Ask follow-up questions about order, usage, or alternatives"
+              autocomplete="off"
+              required
+              disabled
+            />
+            <button
+              id="chat-submit-btn"
+              class="btn btn--secondary chat__submit"
+              type="submit"
+              disabled
+            >
+              Send
+            </button>
+          </form>
+        </section>
+      </div>
+    </aside>
 
     <section
       id="description-modal"

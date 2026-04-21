@@ -10,6 +10,7 @@ const state = {
   category: "all",
   routineGenerated: false,
   conversation: [],
+  previousSelectedCount: 0,
 };
 
 const dom = {
@@ -30,9 +31,91 @@ const dom = {
   modalTitle: document.getElementById("modal-title"),
   modalBody: document.getElementById("modal-body"),
   modalClose: document.getElementById("modal-close"),
+  hubLauncher: document.getElementById("hub-launcher"),
+  hubBadge: document.getElementById("hub-badge"),
+  hubPanel: document.getElementById("hub-panel"),
+  hubBackdrop: document.getElementById("hub-backdrop"),
+  hubCloseBtn: document.getElementById("hub-close-btn"),
+  hubTabsWrap: document.querySelector(".hub__tabs"),
+  hubTabs: Array.from(document.querySelectorAll("[data-hub-tab]")),
 };
 
 const workerEndpoint = document.body.dataset.workerEndpoint || "";
+const LEGACY_ADVISOR_SYSTEM_PROMPT =
+  "You are an elegant, professional, and helpful Virtual Beauty Advisor for L'Oréal Paris. " +
+  "Your goal is to help users discover L'Oréal products (makeup, skincare, haircare, fragrances) and provide personalized routines. " +
+  "Only answer beauty and L'Oréal related questions.";
+
+const HEADER_SCROLL_COMPACT_ON = 72;
+const HEADER_SCROLL_COMPACT_OFF = 40;
+let isHeaderCompact = false;
+
+function syncHeaderState() {
+  const scrollY = window.scrollY;
+  if (!isHeaderCompact && scrollY > HEADER_SCROLL_COMPACT_ON) {
+    isHeaderCompact = true;
+  } else if (isHeaderCompact && scrollY < HEADER_SCROLL_COMPACT_OFF) {
+    isHeaderCompact = false;
+  }
+
+  document.body.classList.toggle("app--scrolled", isHeaderCompact);
+}
+
+function setHubOpenState(isOpen) {
+  dom.hubPanel.classList.toggle("hub--open", isOpen);
+  dom.hubPanel.setAttribute("aria-hidden", isOpen ? "false" : "true");
+  dom.hubBackdrop.hidden = !isOpen;
+  dom.hubLauncher.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  document.body.classList.toggle("app--hub-open", isOpen);
+
+  if (isOpen) {
+    const activeTab = dom.hubTabs.find((tab) =>
+      tab.classList.contains("hub__tab--active"),
+    );
+    (activeTab || dom.hubCloseBtn).focus();
+  } else {
+    dom.hubLauncher.focus();
+  }
+}
+
+function setActiveHubTab(tabName) {
+  const activeIndex = dom.hubTabs.findIndex(
+    (tab) => tab.dataset.hubTab === tabName,
+  );
+  if (activeIndex >= 0) {
+    dom.hubTabsWrap.style.setProperty("--hub-tab-index", String(activeIndex));
+  }
+
+  dom.hubTabs.forEach((tab) => {
+    const isActive = tab.dataset.hubTab === tabName;
+    tab.classList.toggle("hub__tab--active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+
+    const panelId = tab.getAttribute("aria-controls");
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+      return;
+    }
+
+    panel.classList.toggle("hub__tab-panel--active", isActive);
+    panel.hidden = !isActive;
+  });
+}
+
+function updateHubBadge() {
+  const count = state.selectedIds.size;
+  dom.hubBadge.textContent = String(count);
+  dom.hubLauncher.classList.toggle("hub-launcher--has-items", count > 0);
+
+  if (count > state.previousSelectedCount) {
+    dom.hubLauncher.classList.remove("hub-launcher--pulse");
+    requestAnimationFrame(() => {
+      dom.hubLauncher.classList.add("hub-launcher--pulse");
+    });
+  }
+
+  state.previousSelectedCount = count;
+}
 
 function escapeHtml(text) {
   return text
@@ -79,8 +162,14 @@ function hydrateSelectedIds() {
 
 function setRoutineControls(isGenerated) {
   state.routineGenerated = isGenerated;
-  dom.chatInput.disabled = !isGenerated;
-  dom.chatSubmitBtn.disabled = !isGenerated;
+  const hasSelections = state.selectedIds.size > 0;
+  const canChat = isGenerated || hasSelections;
+
+  dom.chatInput.disabled = !canChat;
+  dom.chatSubmitBtn.disabled = !canChat;
+  dom.chatInput.placeholder = isGenerated
+    ? "Ask follow-up questions about order, usage, or alternatives"
+    : "Ask your first question to auto-generate your routine";
 }
 
 function getSelectedProducts() {
@@ -143,6 +232,13 @@ function buildProductCard(product) {
 
   const card = document.createElement("article");
   card.className = `product-card ${isSelected ? "product-card--selected" : ""}`;
+  card.setAttribute("role", "button");
+  card.setAttribute("tabindex", "0");
+  card.setAttribute("aria-pressed", isSelected ? "true" : "false");
+  card.setAttribute(
+    "aria-label",
+    `${isSelected ? "Unselect" : "Select"} ${product.brand} ${product.name}`,
+  );
 
   const top = document.createElement("div");
   top.className = "product-card__top";
@@ -155,9 +251,14 @@ function buildProductCard(product) {
   checkbox.className = "product-card__check";
   checkbox.type = "checkbox";
   checkbox.checked = isSelected;
-  checkbox.disabled = true;
-  checkbox.tabIndex = -1;
-  checkbox.setAttribute("aria-hidden", "true");
+  checkbox.setAttribute(
+    "aria-label",
+    `Select ${product.brand} ${product.name}`,
+  );
+  checkbox.addEventListener("change", (event) => {
+    event.stopPropagation();
+    toggleProductSelection(product.id);
+  });
 
   top.append(category, checkbox);
 
@@ -178,14 +279,6 @@ function buildProductCard(product) {
   const actions = document.createElement("div");
   actions.className = "product-card__actions";
 
-  const toggleBtn = document.createElement("button");
-  toggleBtn.type = "button";
-  toggleBtn.className = "product-card__toggle";
-  toggleBtn.textContent = isSelected ? "Remove" : "Select";
-  toggleBtn.addEventListener("click", () => {
-    toggleProductSelection(product.id);
-  });
-
   const detailsBtn = document.createElement("button");
   detailsBtn.type = "button";
   detailsBtn.className = "product-card__details";
@@ -195,7 +288,32 @@ function buildProductCard(product) {
     openDescriptionModal(product);
   });
 
-  actions.append(toggleBtn, detailsBtn);
+  actions.append(detailsBtn);
+
+  card.addEventListener("click", (event) => {
+    if (
+      event.target.closest(".product-card__details") ||
+      event.target === checkbox
+    ) {
+      return;
+    }
+    toggleProductSelection(product.id);
+  });
+
+  card.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    if (
+      event.target.closest(".product-card__details") ||
+      event.target === checkbox
+    ) {
+      return;
+    }
+    event.preventDefault();
+    toggleProductSelection(product.id);
+  });
+
   card.append(top, image, brand, name, actions);
   li.appendChild(card);
   return li;
@@ -206,8 +324,8 @@ function renderProducts() {
   dom.productGrid.innerHTML = "";
 
   if (filteredProducts.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "empty-state";
+    const empty = document.createElement("li");
+    empty.className = "product-grid__item product-grid__item--empty";
     empty.textContent = "No products match your search and filter.";
     dom.productGrid.appendChild(empty);
     dom.productStatus.textContent = "0 products visible";
@@ -226,13 +344,15 @@ function renderSelectedProducts() {
   const selectedProducts = getSelectedProducts();
   dom.selectedList.innerHTML = "";
   dom.selectedCount.textContent = `${selectedProducts.length}`;
+  updateHubBadge();
 
   if (selectedProducts.length === 0) {
     const empty = document.createElement("li");
-    empty.className = "empty-state";
+    empty.className = "selected-products__empty";
     empty.textContent = "No products selected.";
     dom.selectedList.appendChild(empty);
     dom.generateBtn.disabled = true;
+    setRoutineControls(state.routineGenerated);
     return;
   }
 
@@ -241,25 +361,43 @@ function renderSelectedProducts() {
     const li = document.createElement("li");
     li.className = "selected-product";
 
+    const image = document.createElement("img");
+    image.className = "selected-product__image";
+    image.src = product.image;
+    image.alt = `${product.brand} ${product.name}`;
+    image.loading = "lazy";
+
+    const meta = document.createElement("div");
+    meta.className = "selected-product__meta";
+
     const name = document.createElement("p");
     name.className = "selected-product__name";
     name.textContent = `${product.brand} - ${product.name}`;
 
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "selected-product__remove";
-    remove.textContent = "Remove";
-    remove.setAttribute("aria-label", `Remove ${product.name}`);
-    remove.addEventListener("click", () => {
+    const category = document.createElement("p");
+    category.className = "selected-product__category";
+    category.textContent = product.category;
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "selected-product__remove";
+    removeBtn.textContent = "Remove";
+    removeBtn.setAttribute(
+      "aria-label",
+      `Remove ${product.brand} ${product.name}`,
+    );
+    removeBtn.addEventListener("click", () => {
       toggleProductSelection(product.id);
     });
 
-    li.append(name, remove);
+    meta.append(name, category);
+    li.append(image, meta, removeBtn);
     fragment.appendChild(li);
   });
 
   dom.selectedList.appendChild(fragment);
   dom.generateBtn.disabled = false;
+  setRoutineControls(state.routineGenerated);
 }
 
 function toggleProductSelection(productId) {
@@ -334,11 +472,148 @@ async function sendToWorker(payload) {
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
+  let data = {};
+  try {
+    data = await response.json();
+  } catch (error) {
+    data = {};
+  }
+
+  const directReply =
+    typeof data?.reply === "string"
+      ? data.reply
+      : data?.choices?.[0]?.message?.content?.trim() || "";
+
+  if (response.ok && directReply) {
+    return {
+      reply: directReply,
+      citations: Array.isArray(data?.citations) ? data.citations : [],
+    };
+  }
+
+  const needsLegacyFallback =
+    !response.ok &&
+    typeof data?.error?.message === "string" &&
+    data.error.message.includes("Missing required parameter: 'messages'");
+
+  if (!needsLegacyFallback) {
     throw new Error(`Worker request failed (${response.status})`);
   }
 
-  return response.json();
+  const selectedProducts = Array.isArray(payload?.selectedProducts)
+    ? payload.selectedProducts
+    : [];
+  const conversation = Array.isArray(payload?.conversation)
+    ? payload.conversation
+        .filter(
+          (item) =>
+            item &&
+            (item.role === "user" || item.role === "assistant") &&
+            typeof item.content === "string",
+        )
+        .map((item) => ({ role: item.role, content: item.content }))
+    : [];
+
+  const productContext = selectedProducts.length
+    ? `Selected products:\n${JSON.stringify(selectedProducts, null, 2)}`
+    : "";
+
+  const legacyMessages = [
+    {
+      role: "system",
+      content: productContext
+        ? `${LEGACY_ADVISOR_SYSTEM_PROMPT}\n\n${productContext}`
+        : LEGACY_ADVISOR_SYSTEM_PROMPT,
+    },
+    ...conversation,
+  ];
+
+  const legacyResponse = await fetch(workerEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ messages: legacyMessages }),
+  });
+
+  const legacyData = await legacyResponse.json();
+  if (!legacyResponse.ok) {
+    throw new Error(`Worker request failed (${legacyResponse.status})`);
+  }
+
+  const legacyReply =
+    legacyData?.choices?.[0]?.message?.content?.trim() ||
+    legacyData?.reply ||
+    "I could not generate a response right now.";
+
+  return {
+    reply: legacyReply,
+    citations: [],
+  };
+}
+
+function isValidProductShape(product) {
+  return (
+    product &&
+    (typeof product.id === "string" || typeof product.id === "number") &&
+    typeof product.brand === "string" &&
+    typeof product.name === "string" &&
+    typeof product.category === "string" &&
+    typeof product.description === "string" &&
+    typeof product.image === "string"
+  );
+}
+
+function toTitleCase(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeProductsInput(source) {
+  const list = Array.isArray(source)
+    ? source
+    : Array.isArray(source?.products)
+      ? source.products
+      : [];
+
+  return list.filter(isValidProductShape).map((product) => ({
+    id: String(product.id),
+    brand: product.brand.trim(),
+    name: product.name.trim(),
+    category: toTitleCase(product.category),
+    description: product.description.trim(),
+    image: product.image.trim(),
+  }));
+}
+
+async function loadProductsFromWorker() {
+  if (!workerEndpoint) {
+    return null;
+  }
+
+  const response = await fetch(workerEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ type: "getProducts" }),
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.json();
+  const normalized = normalizeProductsInput(data);
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  return normalized;
 }
 
 async function handleGenerateRoutine() {
@@ -346,6 +621,10 @@ async function handleGenerateRoutine() {
   if (selectedProducts.length === 0) {
     return;
   }
+
+  // Switch to Advisor immediately on generate click.
+  setHubOpenState(true);
+  setActiveHubTab("advisor");
 
   dom.generateBtn.disabled = true;
   dom.generateBtn.textContent = "Generating...";
@@ -366,7 +645,10 @@ async function handleGenerateRoutine() {
     appendChatMessage("assistant", data.reply, data.citations || []);
     addConversationEntry("assistant", data.reply);
     setRoutineControls(true);
+    dom.chatInput.focus();
   } catch (error) {
+    setHubOpenState(true);
+    setActiveHubTab("advisor");
     appendChatMessage(
       "system",
       "Routine generation is temporarily unavailable. Please try again in a moment.",
@@ -379,13 +661,24 @@ async function handleGenerateRoutine() {
 
 async function handleChatSubmit(event) {
   event.preventDefault();
-  if (!state.routineGenerated) {
+  if (state.selectedIds.size === 0) {
+    appendChatMessage(
+      "system",
+      "Select at least one product to start chatting with the advisor.",
+    );
     return;
   }
 
   const message = dom.chatInput.value.trim();
   if (!message) {
     return;
+  }
+
+  if (!state.routineGenerated) {
+    await handleGenerateRoutine();
+    if (!state.routineGenerated) {
+      return;
+    }
   }
 
   dom.chatInput.value = "";
@@ -447,26 +740,65 @@ function attachListeners() {
   dom.generateBtn.addEventListener("click", handleGenerateRoutine);
   dom.chatForm.addEventListener("submit", handleChatSubmit);
   dom.rtlToggleBtn.addEventListener("click", toggleDirection);
+  window.addEventListener("scroll", syncHeaderState, { passive: true });
+
+  dom.hubLauncher.addEventListener("click", () => {
+    const isOpen = dom.hubPanel.classList.contains("hub--open");
+    setHubOpenState(!isOpen);
+  });
+
+  dom.hubCloseBtn.addEventListener("click", () => {
+    setHubOpenState(false);
+  });
+
+  dom.hubBackdrop.addEventListener("click", () => {
+    setHubOpenState(false);
+  });
+
+  dom.hubTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      setActiveHubTab(tab.dataset.hubTab);
+    });
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      dom.hubPanel.classList.contains("hub--open")
+    ) {
+      setHubOpenState(false);
+    }
+  });
 
   handleModalInteractions();
 }
 
 async function loadProducts() {
+  const liveProducts = await loadProductsFromWorker();
+  if (Array.isArray(liveProducts) && liveProducts.length > 0) {
+    state.products = liveProducts;
+    return;
+  }
+
   const response = await fetch("./products.json", { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Unable to load products.json");
   }
 
   const data = await response.json();
-  if (!Array.isArray(data)) {
-    throw new Error("products.json must be an array");
+  const normalized = normalizeProductsInput(data);
+  if (!Array.isArray(normalized) || normalized.length === 0) {
+    throw new Error("products.json must include a non-empty products array");
   }
 
-  state.products = data;
+  state.products = normalized;
 }
 
 async function init() {
   hydrateDirection();
+  syncHeaderState();
+  setActiveHubTab("selected");
+  setHubOpenState(false);
   setRoutineControls(false);
 
   try {
@@ -478,7 +810,7 @@ async function init() {
     attachListeners();
   } catch (error) {
     dom.productGrid.innerHTML =
-      '<p class="empty-state">Unable to load products right now.</p>';
+      '<li class="product-grid__item product-grid__item--empty">Unable to load products right now.</li>';
     dom.productStatus.textContent = "Product feed failed to load";
   }
 }
