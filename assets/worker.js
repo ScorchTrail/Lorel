@@ -325,51 +325,38 @@ export default {
         question: body?.question,
       });
 
-      const input = [
+      const messages = [
         {
           role: "system",
-          content: [{ type: "input_text", text: ADVISOR_SYSTEM_PROMPT }],
+          content: ADVISOR_SYSTEM_PROMPT,
         },
         ...conversation.map((item) => ({
           role: item.role,
-          content: [{ type: "input_text", text: item.content }],
+          content: item.content,
         })),
         {
           role: "user",
-          content: [{ type: "input_text", text: userPrompt }],
+          content: userPrompt,
         },
       ];
 
-      let openAiResponse = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4.1-mini",
-          input,
-          tools: [{ type: "web_search_preview" }],
-          max_output_tokens: 800,
-        }),
-      });
-
-      let responseJson = await openAiResponse.json();
-      if (!openAiResponse.ok && openAiResponse.status === 400) {
-        openAiResponse = await fetch("https://api.openai.com/v1/responses", {
+      const openAiResponse = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-4.1-mini",
-            input,
-            max_output_tokens: 800,
+            model: "gpt-4o",
+            messages,
+            max_completion_tokens: 800,
           }),
-        });
-        responseJson = await openAiResponse.json();
-      }
+        },
+      );
+
+      let responseJson = await openAiResponse.json();
 
       if (!openAiResponse.ok) {
         return new Response(
@@ -385,13 +372,9 @@ export default {
       }
 
       const reply =
-        responseJson.output_text ||
+        responseJson?.choices?.[0]?.message?.content?.trim() ||
         "I could not generate a response right now.";
-      const citations = extractCitations(responseJson);
-      const finalCitations =
-        citations.length > 0
-          ? citations
-          : buildFallbackCitations(selectedProducts);
+      const finalCitations = buildFallbackCitations(selectedProducts);
 
       return new Response(
         JSON.stringify({ reply, citations: finalCitations }),
