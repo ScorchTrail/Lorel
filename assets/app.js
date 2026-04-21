@@ -1,0 +1,486 @@
+const STORAGE_KEYS = {
+  selectedIds: "loreal_selected_product_ids",
+  direction: "loreal_document_direction",
+};
+
+const state = {
+  products: [],
+  selectedIds: new Set(),
+  searchTerm: "",
+  category: "all",
+  routineGenerated: false,
+  conversation: [],
+};
+
+const dom = {
+  productGrid: document.getElementById("product-grid"),
+  searchInput: document.getElementById("search-input"),
+  categoryFilter: document.getElementById("category-filter"),
+  selectedList: document.getElementById("selected-list"),
+  selectedCount: document.getElementById("selected-count"),
+  clearAllBtn: document.getElementById("clear-all-btn"),
+  generateBtn: document.getElementById("generate-routine-btn"),
+  chatHistory: document.getElementById("chat-history"),
+  chatForm: document.getElementById("chat-form"),
+  chatInput: document.getElementById("chat-input"),
+  chatSubmitBtn: document.getElementById("chat-submit-btn"),
+  rtlToggleBtn: document.getElementById("rtl-toggle-btn"),
+  productStatus: document.getElementById("product-status"),
+  modal: document.getElementById("description-modal"),
+  modalTitle: document.getElementById("modal-title"),
+  modalBody: document.getElementById("modal-body"),
+  modalClose: document.getElementById("modal-close"),
+};
+
+const workerEndpoint = document.body.dataset.workerEndpoint || "";
+
+function escapeHtml(text) {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function persistSelectedIds() {
+  localStorage.setItem(
+    STORAGE_KEYS.selectedIds,
+    JSON.stringify(Array.from(state.selectedIds)),
+  );
+}
+
+function hydrateDirection() {
+  const savedDirection = localStorage.getItem(STORAGE_KEYS.direction);
+  if (savedDirection === "rtl" || savedDirection === "ltr") {
+    document.documentElement.setAttribute("dir", savedDirection);
+  }
+}
+
+function toggleDirection() {
+  const current =
+    document.documentElement.getAttribute("dir") === "rtl" ? "rtl" : "ltr";
+  const next = current === "rtl" ? "ltr" : "rtl";
+  document.documentElement.setAttribute("dir", next);
+  localStorage.setItem(STORAGE_KEYS.direction, next);
+}
+
+function hydrateSelectedIds() {
+  const parsed = JSON.parse(
+    localStorage.getItem(STORAGE_KEYS.selectedIds) || "[]",
+  );
+  const validIds = new Set(state.products.map((product) => product.id));
+  parsed.forEach((id) => {
+    if (validIds.has(id)) {
+      state.selectedIds.add(id);
+    }
+  });
+}
+
+function setRoutineControls(isGenerated) {
+  state.routineGenerated = isGenerated;
+  dom.chatInput.disabled = !isGenerated;
+  dom.chatSubmitBtn.disabled = !isGenerated;
+}
+
+function getSelectedProducts() {
+  return state.products.filter((product) => state.selectedIds.has(product.id));
+}
+
+function getFilteredProducts() {
+  return state.products.filter((product) => {
+    const query = state.searchTerm.trim().toLowerCase();
+    const inSearch =
+      query.length === 0 ||
+      product.name.toLowerCase().includes(query) ||
+      product.brand.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query);
+    const inCategory =
+      state.category === "all" || product.category === state.category;
+    return inSearch && inCategory;
+  });
+}
+
+function renderCategoryFilter() {
+  const categories = Array.from(
+    new Set(state.products.map((product) => product.category)),
+  ).sort();
+  dom.categoryFilter.innerHTML = "";
+
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All Categories";
+  dom.categoryFilter.appendChild(allOption);
+
+  categories.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    dom.categoryFilter.appendChild(option);
+  });
+
+  dom.categoryFilter.value = state.category;
+}
+
+function openDescriptionModal(product) {
+  dom.modalTitle.textContent = `${product.brand} - ${product.name}`;
+  dom.modalBody.textContent = product.description;
+  dom.modal.classList.add("modal--open");
+  dom.modal.removeAttribute("hidden");
+  dom.modalClose.focus();
+}
+
+function closeDescriptionModal() {
+  dom.modal.classList.remove("modal--open");
+  dom.modal.setAttribute("hidden", "hidden");
+}
+
+function buildProductCard(product) {
+  const isSelected = state.selectedIds.has(product.id);
+
+  const li = document.createElement("li");
+  li.className = "product-grid__item";
+
+  const card = document.createElement("article");
+  card.className = `product-card ${isSelected ? "product-card--selected" : ""}`;
+
+  const top = document.createElement("div");
+  top.className = "product-card__top";
+
+  const category = document.createElement("span");
+  category.className = "product-card__category";
+  category.textContent = product.category;
+
+  const checkbox = document.createElement("input");
+  checkbox.className = "product-card__check";
+  checkbox.type = "checkbox";
+  checkbox.checked = isSelected;
+  checkbox.disabled = true;
+  checkbox.tabIndex = -1;
+  checkbox.setAttribute("aria-hidden", "true");
+
+  top.append(category, checkbox);
+
+  const image = document.createElement("img");
+  image.className = "product-card__image";
+  image.src = product.image;
+  image.alt = `${product.brand} ${product.name}`;
+  image.loading = "lazy";
+
+  const brand = document.createElement("p");
+  brand.className = "product-card__brand";
+  brand.textContent = product.brand;
+
+  const name = document.createElement("h3");
+  name.className = "product-card__name";
+  name.textContent = product.name;
+
+  const actions = document.createElement("div");
+  actions.className = "product-card__actions";
+
+  const toggleBtn = document.createElement("button");
+  toggleBtn.type = "button";
+  toggleBtn.className = "product-card__toggle";
+  toggleBtn.textContent = isSelected ? "Remove" : "Select";
+  toggleBtn.addEventListener("click", () => {
+    toggleProductSelection(product.id);
+  });
+
+  const detailsBtn = document.createElement("button");
+  detailsBtn.type = "button";
+  detailsBtn.className = "product-card__details";
+  detailsBtn.textContent = "Details";
+  detailsBtn.setAttribute("aria-haspopup", "dialog");
+  detailsBtn.addEventListener("click", () => {
+    openDescriptionModal(product);
+  });
+
+  actions.append(toggleBtn, detailsBtn);
+  card.append(top, image, brand, name, actions);
+  li.appendChild(card);
+  return li;
+}
+
+function renderProducts() {
+  const filteredProducts = getFilteredProducts();
+  dom.productGrid.innerHTML = "";
+
+  if (filteredProducts.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No products match your search and filter.";
+    dom.productGrid.appendChild(empty);
+    dom.productStatus.textContent = "0 products visible";
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  filteredProducts.forEach((product) => {
+    fragment.appendChild(buildProductCard(product));
+  });
+  dom.productGrid.appendChild(fragment);
+  dom.productStatus.textContent = `${filteredProducts.length} products visible`;
+}
+
+function renderSelectedProducts() {
+  const selectedProducts = getSelectedProducts();
+  dom.selectedList.innerHTML = "";
+  dom.selectedCount.textContent = `${selectedProducts.length}`;
+
+  if (selectedProducts.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "empty-state";
+    empty.textContent = "No products selected.";
+    dom.selectedList.appendChild(empty);
+    dom.generateBtn.disabled = true;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  selectedProducts.forEach((product) => {
+    const li = document.createElement("li");
+    li.className = "selected-product";
+
+    const name = document.createElement("p");
+    name.className = "selected-product__name";
+    name.textContent = `${product.brand} - ${product.name}`;
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "selected-product__remove";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", `Remove ${product.name}`);
+    remove.addEventListener("click", () => {
+      toggleProductSelection(product.id);
+    });
+
+    li.append(name, remove);
+    fragment.appendChild(li);
+  });
+
+  dom.selectedList.appendChild(fragment);
+  dom.generateBtn.disabled = false;
+}
+
+function toggleProductSelection(productId) {
+  if (state.selectedIds.has(productId)) {
+    state.selectedIds.delete(productId);
+  } else {
+    state.selectedIds.add(productId);
+  }
+
+  persistSelectedIds();
+  renderProducts();
+  renderSelectedProducts();
+}
+
+function clearAllSelections() {
+  state.selectedIds.clear();
+  persistSelectedIds();
+  renderProducts();
+  renderSelectedProducts();
+}
+
+function scrollChatToBottom() {
+  dom.chatHistory.scrollTop = dom.chatHistory.scrollHeight;
+}
+
+function appendChatMessage(role, text, citations = []) {
+  const item = document.createElement("li");
+  item.className = `chat__message chat__message--${role}`;
+  item.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
+
+  if (Array.isArray(citations) && citations.length > 0) {
+    const linksWrap = document.createElement("div");
+    linksWrap.className = "chat__citations";
+
+    citations.forEach((citation) => {
+      const link = document.createElement("a");
+      link.className = "chat__citation-link";
+      link.href = citation.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = citation.title
+        ? `Source: ${citation.title}`
+        : citation.url;
+      linksWrap.appendChild(link);
+    });
+
+    item.appendChild(linksWrap);
+  }
+
+  dom.chatHistory.appendChild(item);
+  scrollChatToBottom();
+}
+
+function addConversationEntry(role, content) {
+  state.conversation.push({ role, content });
+}
+
+async function sendToWorker(payload) {
+  if (!workerEndpoint) {
+    return {
+      reply:
+        "Worker endpoint is not configured. Set data-worker-endpoint on <body>.",
+      citations: [],
+    };
+  }
+
+  const response = await fetch(workerEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Worker request failed (${response.status})`);
+  }
+
+  return response.json();
+}
+
+async function handleGenerateRoutine() {
+  const selectedProducts = getSelectedProducts();
+  if (selectedProducts.length === 0) {
+    return;
+  }
+
+  dom.generateBtn.disabled = true;
+  dom.generateBtn.textContent = "Generating...";
+
+  appendChatMessage("user", "Generate my routine from the selected products.");
+  addConversationEntry(
+    "user",
+    "Generate my routine from the selected products.",
+  );
+
+  try {
+    const data = await sendToWorker({
+      type: "generateRoutine",
+      selectedProducts,
+      conversation: state.conversation,
+    });
+
+    appendChatMessage("assistant", data.reply, data.citations || []);
+    addConversationEntry("assistant", data.reply);
+    setRoutineControls(true);
+  } catch (error) {
+    appendChatMessage(
+      "system",
+      "Routine generation is temporarily unavailable. Please try again in a moment.",
+    );
+  } finally {
+    dom.generateBtn.textContent = "Generate Routine";
+    dom.generateBtn.disabled = getSelectedProducts().length === 0;
+  }
+}
+
+async function handleChatSubmit(event) {
+  event.preventDefault();
+  if (!state.routineGenerated) {
+    return;
+  }
+
+  const message = dom.chatInput.value.trim();
+  if (!message) {
+    return;
+  }
+
+  dom.chatInput.value = "";
+  dom.chatSubmitBtn.disabled = true;
+  dom.chatSubmitBtn.textContent = "...";
+
+  appendChatMessage("user", message);
+  addConversationEntry("user", message);
+
+  try {
+    const data = await sendToWorker({
+      type: "followUp",
+      question: message,
+      selectedProducts: getSelectedProducts(),
+      conversation: state.conversation,
+    });
+
+    appendChatMessage("assistant", data.reply, data.citations || []);
+    addConversationEntry("assistant", data.reply);
+  } catch (error) {
+    appendChatMessage(
+      "system",
+      "I could not fetch a follow-up answer right now.",
+    );
+  } finally {
+    dom.chatSubmitBtn.disabled = false;
+    dom.chatSubmitBtn.textContent = "Send";
+    dom.chatInput.focus();
+  }
+}
+
+function handleModalInteractions() {
+  dom.modalClose.addEventListener("click", closeDescriptionModal);
+  dom.modal.addEventListener("click", (event) => {
+    if (event.target === dom.modal) {
+      closeDescriptionModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && dom.modal.classList.contains("modal--open")) {
+      closeDescriptionModal();
+    }
+  });
+}
+
+function attachListeners() {
+  dom.searchInput.addEventListener("input", (event) => {
+    state.searchTerm = event.target.value;
+    renderProducts();
+  });
+
+  dom.categoryFilter.addEventListener("change", (event) => {
+    state.category = event.target.value;
+    renderProducts();
+  });
+
+  dom.clearAllBtn.addEventListener("click", clearAllSelections);
+  dom.generateBtn.addEventListener("click", handleGenerateRoutine);
+  dom.chatForm.addEventListener("submit", handleChatSubmit);
+  dom.rtlToggleBtn.addEventListener("click", toggleDirection);
+
+  handleModalInteractions();
+}
+
+async function loadProducts() {
+  const response = await fetch("./products.json", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("Unable to load products.json");
+  }
+
+  const data = await response.json();
+  if (!Array.isArray(data)) {
+    throw new Error("products.json must be an array");
+  }
+
+  state.products = data;
+}
+
+async function init() {
+  hydrateDirection();
+  setRoutineControls(false);
+
+  try {
+    await loadProducts();
+    hydrateSelectedIds();
+    renderCategoryFilter();
+    renderProducts();
+    renderSelectedProducts();
+    attachListeners();
+  } catch (error) {
+    dom.productGrid.innerHTML =
+      '<p class="empty-state">Unable to load products right now.</p>';
+    dom.productStatus.textContent = "Product feed failed to load";
+  }
+}
+
+init();

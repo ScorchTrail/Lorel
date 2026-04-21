@@ -1,265 +1,195 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>L'Oréal Beauty Assistant</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>L'Oréal Product-Aware Routine Builder</title>
+    <meta
+      name="description"
+      content="Build a personalized beauty routine with L'Oréal group products and ask follow-up questions with an AI beauty advisor."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Quantico:wght@400;700&display=swap"
       rel="stylesheet"
     />
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              loreal: {
-                black: "#1a1a1a",
-                gold: "#C5A059",
-                lightgold: "#F4EFE6",
-                gray: "#f5f5f5",
-              },
-            },
-            fontFamily: {
-              serif: ["Playfair Display", "serif"],
-              sans: ["Inter", "sans-serif"],
-            },
-          },
-        },
-      };
-    </script>
-    <style>
-      ::-webkit-scrollbar {
-        width: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #c5a059;
-        border-radius: 10px;
-      }
-    </style>
+    <link rel="stylesheet" href="./css/normalize.css" />
+    <link rel="stylesheet" href="./css/app.css" />
   </head>
-  <body class="min-h-screen bg-gray-50 p-4 font-sans text-loreal-black">
-    <main
-      class="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col"
-    >
-      <div
-        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl"
-      >
-        <header
-          class="border-b-4 border-loreal-gold bg-loreal-black p-6 text-center text-white"
-        >
-          <h1 class="font-serif text-3xl font-bold uppercase tracking-[0.2em]">
-            L'Oréal
-          </h1>
-          <p
-            class="mt-1 text-xs font-sans uppercase tracking-wider text-loreal-gold"
-          >
-            Paris - Virtual Beauty Advisor
+  <body
+    data-worker-endpoint="https://lorel-chat-proxy.p-vedant7878.workers.dev"
+  >
+    <header class="app__header">
+      <div class="app__header-inner">
+        <div class="app__title-wrap">
+          <h1 class="app__title">L'Oréal Routine Builder</h1>
+          <p class="app__subtitle">
+            Select products, generate a routine, and refine it with follow-up
+            chat.
           </p>
-        </header>
-
-        <div
-          id="chat-window"
-          class="flex-1 overflow-y-auto space-y-6 bg-[#faf9f7] p-6"
+        </div>
+        <button
+          id="rtl-toggle-btn"
+          class="btn btn--ghost"
+          type="button"
+          aria-label="Toggle right-to-left layout"
         >
-          <div class="flex items-start">
-            <div
-              class="mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-loreal-black font-serif text-xl font-bold text-loreal-gold"
-            >
-              L
-            </div>
-            <div
-              class="max-w-[80%] rounded-2xl rounded-tl-none border border-loreal-gold bg-white p-4 text-sm leading-relaxed text-gray-800 shadow-sm"
-            >
-              Welcome to L'Oréal Paris. I am your personal AI beauty advisor.
-              How can I assist you today with your makeup, skincare, or haircare
-              routine?
-            </div>
-          </div>
-        </div>
-
-        <div class="border-t border-gray-100 bg-white p-4">
-          <form id="chat-form" class="flex items-center gap-2">
-            <input
-              type="text"
-              id="user-input"
-              placeholder="Ask about skincare routines, makeup shades..."
-              class="flex-1 rounded-full border border-transparent bg-loreal-gray px-5 py-4 text-sm transition-all focus:border-loreal-gold focus:outline-none focus:ring-2 focus:ring-loreal-gold"
-              autocomplete="off"
-            />
-            <button
-              type="submit"
-              id="send-btn"
-              class="group flex items-center justify-center rounded-full bg-loreal-black p-4 text-white transition-colors hover:bg-black"
-              aria-label="Send message"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5 text-loreal-gold transition-transform group-hover:scale-110"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                />
-              </svg>
-            </button>
-          </form>
-        </div>
+          Toggle RTL
+        </button>
       </div>
+    </header>
 
-      <footer
-        class="mt-4 text-center text-xs uppercase tracking-[0.12em] text-gray-600"
-      >
-        © 2026 Vednt Patel - All Rights Reserved.
-      </footer>
+    <main class="app">
+      <div class="layout-grid">
+        <section
+          class="layout-grid__main panel panel--padded"
+          aria-labelledby="products-title"
+        >
+          <div class="section-head">
+            <h2 id="products-title" class="section-head__title">
+              Discover Products
+            </h2>
+            <p class="section-head__copy">
+              Use search and category filters together, then choose products to
+              build your personalized routine.
+            </p>
+          </div>
+
+          <section class="controls" aria-label="Product filters">
+            <div class="controls__field controls__field--search">
+              <label class="form-label" for="search-input"
+                >Search by name, brand, or keyword</label
+              >
+              <input
+                class="input"
+                id="search-input"
+                name="search"
+                type="search"
+                placeholder="Example: serum, mascara, cleansing"
+                autocomplete="off"
+              />
+            </div>
+            <div class="controls__field controls__field--select">
+              <label class="form-label" for="category-filter">Category</label>
+              <select
+                id="category-filter"
+                class="select"
+                name="category"
+              ></select>
+            </div>
+          </section>
+
+          <p id="product-status" class="status-text" aria-live="polite"></p>
+
+          <ul
+            id="product-grid"
+            class="product-grid"
+            aria-label="Product catalog"
+          ></ul>
+        </section>
+
+        <aside
+          class="layout-grid__aside sidebar-stack"
+          aria-label="Selected products and AI advisor"
+        >
+          <section
+            class="panel panel--padded selected-products"
+            aria-labelledby="selected-title"
+          >
+            <div class="selected-products__head">
+              <h2 id="selected-title" class="selected-products__title">
+                Selected Products
+              </h2>
+              <button id="clear-all-btn" class="btn btn--ghost" type="button">
+                Clear All
+              </button>
+            </div>
+            <p class="status-text">Count: <span id="selected-count">0</span></p>
+            <ul
+              id="selected-list"
+              class="selected-products__list"
+              aria-live="polite"
+            ></ul>
+            <div class="selected-products__actions">
+              <button
+                id="generate-routine-btn"
+                class="btn btn--primary"
+                type="button"
+                disabled
+              >
+                Generate Routine
+              </button>
+            </div>
+          </section>
+
+          <section
+            class="panel panel--padded chat"
+            aria-labelledby="chat-title"
+          >
+            <h2 id="chat-title" class="chat__title">Beauty Advisor Chat</h2>
+            <ul id="chat-history" class="chat__history" aria-live="polite">
+              <li class="chat__message chat__message--system">
+                Select products and click "Generate Routine" to start your
+                personalized conversation.
+              </li>
+            </ul>
+
+            <form id="chat-form" class="chat__form">
+              <label class="visually-hidden" for="chat-input"
+                >Ask a follow-up question</label
+              >
+              <input
+                id="chat-input"
+                class="input chat__input"
+                type="text"
+                placeholder="Ask follow-up questions about order, usage, or alternatives"
+                autocomplete="off"
+                required
+                disabled
+              />
+              <button
+                id="chat-submit-btn"
+                class="btn btn--secondary chat__submit"
+                type="submit"
+                disabled
+              >
+                Send
+              </button>
+            </form>
+          </section>
+        </aside>
+      </div>
     </main>
 
-    <script>
-      const SYSTEM_PROMPT = `You are an elegant, professional, and helpful Virtual Beauty Advisor for L'Oréal Paris.
-Your goal is to help users discover L'Oréal products (makeup, skincare, haircare, fragrances) and provide personalized routines.
-CRITICAL RULE: You MUST ONLY answer questions related to beauty, L'Oréal products, cosmetics, skincare routines, and haircare.
-If a user asks about politics, coding, unrelated general knowledge, or anything outside of beauty/L'Oréal, you must politely decline, explain that you are a L'Oréal beauty advisor, and ask how you can help them with their beauty needs. Maintain a sophisticated, encouraging, and luxurious tone.`;
+    <section
+      id="description-modal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      hidden
+    >
+      <div class="modal__dialog">
+        <div class="modal__header">
+          <h2 id="modal-title" class="modal__title"></h2>
+          <button
+            id="modal-close"
+            class="modal__close"
+            type="button"
+            aria-label="Close product details"
+          >
+            x
+          </button>
+        </div>
+        <p id="modal-body"></p>
+      </div>
+    </section>
 
-      const conversationHistory = [];
-      const cloudflareWorkerURL =
-        "https://lorel-chat-proxy.p-vedant7878.workers.dev";
+    <footer class="app__footer">
+      © 2026 L'Oréal Product-Aware Routine Builder
+    </footer>
 
-      const chatWindow = document.getElementById("chat-window");
-      const chatForm = document.getElementById("chat-form");
-      const userInputBox = document.getElementById("user-input");
-      const sendBtn = document.getElementById("send-btn");
-
-      function escapeHtml(text) {
-        return text
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;")
-          .replaceAll('"', "&quot;")
-          .replaceAll("'", "&#39;");
-      }
-
-      function scrollToBottom() {
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-      }
-
-      function appendUserMessage(text) {
-        const safeText = escapeHtml(text);
-        const msgHTML = `
-                <div class="flex items-start justify-end">
-                    <div class="max-w-[80%] rounded-2xl rounded-tr-none bg-loreal-black p-4 text-sm leading-relaxed text-white shadow-md">
-                        ${safeText}
-                    </div>
-                </div>
-            `;
-        chatWindow.insertAdjacentHTML("beforeend", msgHTML);
-        scrollToBottom();
-      }
-
-      function appendBotMessage(text) {
-        const safeText = escapeHtml(text).replace(/\n/g, "<br>");
-        const msgHTML = `
-                <div class="flex items-start">
-                    <div class="mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-loreal-black font-serif text-xl font-bold text-loreal-gold shadow-sm">
-                        L
-                    </div>
-                    <div class="max-w-[80%] rounded-2xl rounded-tl-none border border-loreal-gold bg-white p-4 text-sm leading-relaxed text-gray-800 shadow-sm">
-                        ${safeText}
-                    </div>
-                </div>
-            `;
-        chatWindow.insertAdjacentHTML("beforeend", msgHTML);
-        scrollToBottom();
-      }
-
-      function showLoadingIndicator() {
-        const loadingId = `loading-${Date.now()}`;
-        const msgHTML = `
-                <div id="${loadingId}" class="flex items-start">
-                    <div class="mr-3 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-loreal-black font-serif text-xl font-bold text-loreal-gold">L</div>
-                    <div class="flex items-center space-x-2 rounded-2xl rounded-tl-none border border-gray-200 bg-white p-4 text-gray-400 shadow-sm">
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-loreal-gold"></div>
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-loreal-gold" style="animation-delay: 0.2s"></div>
-                        <div class="h-2 w-2 animate-bounce rounded-full bg-loreal-gold" style="animation-delay: 0.4s"></div>
-                    </div>
-                </div>
-            `;
-        chatWindow.insertAdjacentHTML("beforeend", msgHTML);
-        scrollToBottom();
-        return loadingId;
-      }
-
-      function removeLoadingIndicator(id) {
-        const indicator = document.getElementById(id);
-        if (indicator) {
-          indicator.remove();
-        }
-      }
-
-      async function fetchAIResponse(userText) {
-        conversationHistory.push({ role: "user", content: userText });
-
-        const messages = [
-          { role: "system", content: SYSTEM_PROMPT },
-          ...conversationHistory,
-        ];
-
-        try {
-          const response = await fetch(cloudflareWorkerURL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ messages }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Worker response was not ok (${response.status})`);
-          }
-
-          const data = await response.json();
-          const botReply = data?.choices?.[0]?.message?.content?.trim() || "";
-
-          if (!botReply) {
-            throw new Error("No assistant response in payload");
-          }
-
-          conversationHistory.push({ role: "assistant", content: botReply });
-          return botReply;
-        } catch (error) {
-          console.error("Error communicating with Cloudflare Worker:", error);
-          return "I apologize, our beauty servers are currently updating. Please try again in a moment.";
-        }
-      }
-
-      chatForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        const text = userInputBox.value.trim();
-        if (!text) {
-          return;
-        }
-
-        userInputBox.value = "";
-        userInputBox.disabled = true;
-        sendBtn.disabled = true;
-
-        appendUserMessage(text);
-        const loadingId = showLoadingIndicator();
-        const responseText = await fetchAIResponse(text);
-        removeLoadingIndicator(loadingId);
-        appendBotMessage(responseText);
-
-        userInputBox.disabled = false;
-        sendBtn.disabled = false;
-        userInputBox.focus();
-      });
-    </script>
+    <script type="module" src="./assets/app.js"></script>
   </body>
 </html>

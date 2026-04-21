@@ -1,0 +1,74 @@
+[
+  {
+    "id": "p1",
+    "brand": "CeraVe",
+    "name": "Hydrating Facial Cleanser",
+    "category": "Skincare",
+    "description": "A gentle, non-foaming cleanser with ceramides and hyaluronic acid to help restore the skin barrier without stripping moisture.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Hydrating+Cleanser"
+  },
+  {
+    "id": "p2",
+    "brand": "L'Oréal Paris",
+    "name": "Revitalift 1.5% Hyaluronic Acid Serum",
+    "category": "Skincare",
+    "description": "A lightweight serum that helps visibly plump skin and reduce the appearance of fine lines with hyaluronic acid.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Revitalift+Serum"
+  },
+  {
+    "id": "p3",
+    "brand": "Garnier",
+    "name": "Micellar Cleansing Water",
+    "category": "Skincare",
+    "description": "All-in-one cleanser and makeup remover that leaves skin refreshed with no rinse required.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Micellar+Water"
+  },
+  {
+    "id": "p4",
+    "brand": "Lancôme",
+    "name": "Advanced Genifique Serum",
+    "category": "Skincare",
+    "description": "A youth-activating serum formulated to improve radiance and skin smoothness with continued use.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Genifique"
+  },
+  {
+    "id": "p5",
+    "brand": "L'Oréal Paris",
+    "name": "True Match Nude Tinted Serum",
+    "category": "Makeup",
+    "description": "A hybrid formula combining lightweight coverage and hydrating care for a natural luminous finish.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Tinted+Serum"
+  },
+  {
+    "id": "p6",
+    "brand": "Maybelline",
+    "name": "Lash Sensational Sky High Mascara",
+    "category": "Makeup",
+    "description": "Lengthening and volumizing mascara designed for lifted lashes and all-day wear.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Sky+High+Mascara"
+  },
+  {
+    "id": "p7",
+    "brand": "Redken",
+    "name": "All Soft Shampoo",
+    "category": "Haircare",
+    "description": "A nourishing shampoo with argan oil that helps soften and smooth dry, brittle hair.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=All+Soft+Shampoo"
+  },
+  {
+    "id": "p8",
+    "brand": "Kerastase",
+    "name": "Elixir Ultime Hair Oil Serum",
+    "category": "Haircare",
+    "description": "A multi-use hair oil serum for shine, softness, and frizz control across different hair routines.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Hair+Oil+Serum"
+  },
+  {
+    "id": "p9",
+    "brand": "Yves Saint Laurent",
+    "name": "Black Opium Eau de Parfum",
+    "category": "Fragrance",
+    "description": "A warm, captivating fragrance profile blending coffee accord, vanilla, and white florals.",
+    "image": "https://placehold.co/640x640/f4efe6/1a1a1a?text=Black+Opium"
+  }
+]
