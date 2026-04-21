@@ -295,7 +295,7 @@ body.app--hub-open .hub-launcher {
   inset-block-start: var(--space-4);
   inset-block-end: var(--space-4);
   z-index: 75;
-  inline-size: min(460px, calc(100vw - 2 * var(--space-4)));
+  inline-size: min(496px, calc(100vw - 2 * var(--space-4)));
   block-size: calc(100vh - 2 * var(--space-4));
   min-block-size: 560px;
   max-block-size: calc(100vh - 2 * var(--space-4));
@@ -726,8 +726,8 @@ html[dir="rtl"] .hub__tab-indicator {
 }
 
 .chat {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space-2);
   min-block-size: 0;
   overflow: hidden;
@@ -748,7 +748,6 @@ html[dir="rtl"] .hub__tab-indicator {
     var(--color-surface-alt);
   block-size: auto;
   min-block-size: 0;
-  flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -903,9 +902,10 @@ html[dir="rtl"] .hub--open {
 }
 
 .chat__form {
-  margin-block-start: auto;
+  margin-block-start: 0;
   padding-block-start: var(--space-2);
   border-block-start: 1px solid var(--color-border);
+  background-color: var(--color-surface);
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--space-1);

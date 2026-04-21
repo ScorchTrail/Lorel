@@ -156,41 +156,6 @@ function buildUserPrompt({ type, selectedProducts, question }) {
   ].join("\n\n");
 }
 
-function extractCitations(responseJson) {
-  const citations = [];
-  const output = Array.isArray(responseJson.output) ? responseJson.output : [];
-
-  output.forEach((item) => {
-    if (!Array.isArray(item.content)) {
-      return;
-    }
-
-    item.content.forEach((contentItem) => {
-      if (!Array.isArray(contentItem.annotations)) {
-        return;
-      }
-
-      contentItem.annotations.forEach((annotation) => {
-        if (annotation.type === "url_citation" && annotation.url) {
-          citations.push({
-            title: annotation.title || "Reference",
-            url: annotation.url,
-          });
-        }
-      });
-    });
-  });
-
-  const seen = new Set();
-  return citations.filter((item) => {
-    if (seen.has(item.url)) {
-      return false;
-    }
-    seen.add(item.url);
-    return true;
-  });
-}
-
 function buildFallbackCitations(selectedProducts) {
   if (!Array.isArray(selectedProducts) || selectedProducts.length === 0) {
     return [
@@ -356,7 +321,7 @@ export default {
         },
       );
 
-      let responseJson = await openAiResponse.json();
+      const responseJson = await openAiResponse.json();
 
       if (!openAiResponse.ok) {
         return new Response(

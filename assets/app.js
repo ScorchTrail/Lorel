@@ -126,6 +126,25 @@ function escapeHtml(text) {
     .replaceAll("'", "&#39;");
 }
 
+function normalizeImageUrl(url) {
+  const value = String(url || "").trim();
+  if (!value) {
+    return "https://placehold.co/640x640/f4efe6/1a1a1a?text=L%27Oreal+Product";
+  }
+
+  try {
+    const parsed = new URL(value);
+    // Encode path safely while preserving separators.
+    parsed.pathname = parsed.pathname
+      .split("/")
+      .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
+      .join("/");
+    return parsed.toString();
+  } catch (error) {
+    return "https://placehold.co/640x640/f4efe6/1a1a1a?text=L%27Oreal+Product";
+  }
+}
+
 function persistSelectedIds() {
   localStorage.setItem(
     STORAGE_KEYS.selectedIds,
@@ -264,9 +283,13 @@ function buildProductCard(product) {
 
   const image = document.createElement("img");
   image.className = "product-card__image";
-  image.src = product.image;
+  image.src = normalizeImageUrl(product.image);
   image.alt = `${product.brand} ${product.name}`;
   image.loading = "lazy";
+  image.addEventListener("error", () => {
+    image.src =
+      "https://placehold.co/640x640/f4efe6/1a1a1a?text=L%27Oreal+Product";
+  });
 
   const brand = document.createElement("p");
   brand.className = "product-card__brand";
@@ -363,9 +386,13 @@ function renderSelectedProducts() {
 
     const image = document.createElement("img");
     image.className = "selected-product__image";
-    image.src = product.image;
+    image.src = normalizeImageUrl(product.image);
     image.alt = `${product.brand} ${product.name}`;
     image.loading = "lazy";
+    image.addEventListener("error", () => {
+      image.src =
+        "https://placehold.co/640x640/f4efe6/1a1a1a?text=L%27Oreal+Product";
+    });
 
     const meta = document.createElement("div");
     meta.className = "selected-product__meta";
